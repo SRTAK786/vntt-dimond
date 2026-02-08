@@ -127,7 +127,7 @@ async function adminLogin() {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                password: password,
+                password: vntt2627,
                 security_code: securityCode
             })
         });
@@ -999,4 +999,5 @@ window.showTab = showTab;
 window.adminLogin = adminLogin;
 window.adminLogout = adminLogout;
 window.togglePassword = togglePassword;
+
 window.showAddTaskModal = showAddTaskModal;
