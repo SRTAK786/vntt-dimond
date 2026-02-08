@@ -1,7 +1,7 @@
 <?php
 // VNTT Configuration
 define('SITE_NAME', 'VNTT Diamond Network');
-define('SITE_URL', 'https://yourdomain.com/');
+define('SITE_URL', 'https://vnetworkservices.com/');
 define('ADMIN_EMAIL', 'admin@yourdomain.com');
 define('TELEGRAM_SUPPORT', 'https://t.me/vntt_support');
 
@@ -9,10 +9,10 @@ define('TELEGRAM_SUPPORT', 'https://t.me/vntt_support');
 define('DB_PATH', __DIR__ . '/data/vntt.db');
 
 // Smart Contract Addresses
-define('CONTRACT_ADDRESS', 'YOUR_CONTRACT_ADDRESS');
-define('VNTT_TOKEN_ADDRESS', 'YOUR_VNTT_TOKEN_ADDRESS');
+define('CONTRACT_ADDRESS', '0x660251F2CFcE9c0f9aED1e4f7aa75EF9f0618c8c');
+define('VNTT_TOKEN_ADDRESS', '0x6033849Dc89eC1DB364EFcd8A6cf9Bc095cD3e41');
 define('USDT_TOKEN_ADDRESS', '0x55d398326f99059fF775485246999027B3197955');
-define('VNT_TOKEN_ADDRESS', 'YOUR_VNT_TOKEN_ADDRESS');
+define('VNT_TOKEN_ADDRESS', '0xD379Fd70C5C334bb31208122A6781ADB032D176f');
 
 // Network Configuration
 define('NETWORK', 'BSC');
