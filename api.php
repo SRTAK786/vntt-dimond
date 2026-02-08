@@ -569,4 +569,232 @@ function getWithdrawals($address) {
         echo json_encode(['success' => false, 'message' => 'Failed to fetch withdrawals']);
     }
 }
+
+// Admin login
+function handleAdminLogin($data) {
+    $password = $data['password'] ?? '';
+    $securityCode = $data['security_code'] ?? '';
+    
+    // Verify password (change this to your secure password)
+    $correctPassword = 'Vntt@2024#Secure!Admin';
+    
+    if ($password === $correctPassword) {
+        // In production, use JWT or session tokens
+        $token = bin2hex(random_bytes(32));
+        
+        echo json_encode([
+            'success' => true,
+            'token' => $token,
+            'message' => 'Login successful'
+        ]);
+    } else {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Invalid credentials'
+        ]);
+    }
+}
+
+// Get all users (admin)
+function getAllUsers() {
+    global $db_file;
+    
+    // Admin check
+    $token = $_GET['token'] ?? '';
+    if ($token !== 'Vntt@2024#Secure!Admin') {
+        echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+        return;
+    }
+    
+    try {
+        $db = new SQLite3($db_file);
+        $result = $db->query('SELECT * FROM users ORDER BY join_time DESC');
+        
+        $users = [];
+        while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
+            // Get additional stats
+            $stmt = $db->prepare('SELECT COUNT(*) as count FROM referrals WHERE referrer = :address');
+            $stmt->bindValue(':address', $row['wallet_address'], SQLITE3_TEXT);
+            $refResult = $stmt->execute();
+            $refCount = $refResult->fetchArray(SQLITE3_ASSOC);
+            
+            $stmt = $db->prepare('SELECT COUNT(*) as count FROM verifications WHERE user_address = :address AND status = "verified"');
+            $stmt->bindValue(':address', $row['wallet_address'], SQLITE3_TEXT);
+            $taskResult = $stmt->execute();
+            $taskCount = $taskResult->fetchArray(SQLITE3_ASSOC);
+            
+            $row['referral_count'] = $refCount['count'];
+            $row['verified_tasks'] = $taskCount['count'];
+            $users[] = $row;
+        }
+        
+        echo json_encode(['success' => true, 'users' => $users]);
+        $db->close();
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'message' => 'Failed to fetch users']);
+    }
+}
+
+// Activate user (admin)
+function activateUserAdmin($data) {
+    global $db_file;
+    
+    // Admin check
+    $token = $data['token'] ?? '';
+    if ($token !== 'Vntt@2024#Secure!Admin') {
+        echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+        return;
+    }
+    
+    if (empty($data['wallet_address'])) {
+        echo json_encode(['success' => false, 'message' => 'Wallet address required']);
+        return;
+    }
+    
+    try {
+        $db = new SQLite3($db_file);
+        
+        // Update user activation
+        $stmt = $db->prepare('
+            UPDATE users 
+            SET is_active = 1, 
+                activation_time = strftime("%s","now"),
+                has_paid_activation = 1,
+                total_earned = total_earned + 100,
+                locked_tokens = locked_tokens + 100
+            WHERE wallet_address = :address
+        ');
+        $stmt->bindValue(':address', $data['wallet_address'], SQLITE3_TEXT);
+        
+        if ($stmt->execute()) {
+            echo json_encode(['success' => true, 'message' => 'User activated successfully']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Activation failed']);
+        }
+        
+        $db->close();
+    } catch (Exception $e) {
+        error_log("Admin activation error: " . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => 'Server error']);
+    }
+}
+
+// Add new task (admin)
+function addTask($data) {
+    global $db_file;
+    
+    // Admin check
+    $token = $data['token'] ?? '';
+    if ($token !== 'Vntt@2024#Secure!Admin') {
+        echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+        return;
+    }
+    
+    if (empty($data['task_name']) || empty($data['platform']) || empty($data['task_type']) || empty($data['reward'])) {
+        echo json_encode(['success' => false, 'message' => 'Missing required fields']);
+        return;
+    }
+    
+    try {
+        $db = new SQLite3($db_file);
+        
+        // Get next task ID
+        $maxId = $db->querySingle('SELECT MAX(task_id) FROM tasks');
+        $nextId = ($maxId ? $maxId + 1 : 0);
+        
+        $stmt = $db->prepare('
+            INSERT INTO tasks (task_id, platform, task_type, task_name, reward, description, is_active)
+            VALUES (:task_id, :platform, :task_type, :task_name, :reward, :description, :is_active)
+        ');
+        
+        $stmt->bindValue(':task_id', $nextId, SQLITE3_INTEGER);
+        $stmt->bindValue(':platform', $data['platform'], SQLITE3_TEXT);
+        $stmt->bindValue(':task_type', $data['task_type'], SQLITE3_TEXT);
+        $stmt->bindValue(':task_name', $data['task_name'], SQLITE3_TEXT);
+        $stmt->bindValue(':reward', $data['reward'], SQLITE3_FLOAT);
+        $stmt->bindValue(':description', $data['description'] ?? '', SQLITE3_TEXT);
+        $stmt->bindValue(':is_active', $data['is_active'] ?? 1, SQLITE3_INTEGER);
+        
+        if ($stmt->execute()) {
+            echo json_encode([
+                'success' => true, 
+                'message' => 'Task added successfully',
+                'task_id' => $nextId
+            ]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Failed to add task']);
+        }
+        
+        $db->close();
+    } catch (Exception $e) {
+        error_log("Add task error: " . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => 'Server error']);
+    }
+}
+
+// Get activity logs
+function getActivityLogs() {
+    global $db_file;
+    
+    // Admin check
+    $token = $_GET['token'] ?? '';
+    if ($token !== 'Vntt@2024#Secure!Admin') {
+        echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+        return;
+    }
+    
+    try {
+        $db = new SQLite3($db_file);
+        
+        // Get logs from verifications and withdrawals
+        $logs = [];
+        
+        // Verification logs
+        $result = $db->query('
+            SELECT v.*, t.task_name, u.wallet_address as user_wallet 
+            FROM verifications v 
+            LEFT JOIN tasks t ON v.task_id = t.task_id 
+            LEFT JOIN users u ON v.user_address = u.wallet_address 
+            ORDER BY v.submitted_at DESC LIMIT 50
+        ');
+        
+        while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
+            $logs[] = [
+                'type' => 'verification',
+                'timestamp' => $row['submitted_at'],
+                'message' => 'Task verification: ' . $row['task_name'],
+                'user' => $row['user_wallet'],
+                'status' => $row['status']
+            ];
+        }
+        
+        // Withdrawal logs
+        $result = $db->query('
+            SELECT w.*, u.wallet_address as user_wallet 
+            FROM withdrawals w 
+            LEFT JOIN users u ON w.user_address = u.wallet_address 
+            ORDER BY w.requested_at DESC LIMIT 50
+        ');
+        
+        while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
+            $logs[] = [
+                'type' => 'withdrawal',
+                'timestamp' => $row['requested_at'],
+                'message' => 'Withdrawal: ' . $row['amount'] . ' VNTT',
+                'user' => $row['user_wallet'],
+                'status' => $row['status']
+            ];
+        }
+        
+        // Sort by timestamp
+        usort($logs, function($a, $b) {
+            return $b['timestamp'] - $a['timestamp'];
+        });
+        
+        echo json_encode(['success' => true, 'logs' => array_slice($logs, 0, 100)]);
+        $db->close();
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'message' => 'Failed to fetch logs']);
+    }
+}
 ?>
