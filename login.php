@@ -3,8 +3,8 @@
 session_start();
 
 // Hardcoded admin credentials (change these!)
-$admin_username = 'admin';
-$admin_password = 'vntt2024'; // Change this!
+$admin_username = 'vrsstak';
+$admin_password = 'vntt2627'; // Change this!
 
 // Check if already logged in
 if (isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true) {
