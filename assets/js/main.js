@@ -228,21 +228,40 @@ function updateWalletDisplay() {
     }
 }
 
-// Load User Data
 async function loadUserData() {
+    if (!userData.walletAddress) return;
+    
     try {
-        // Mock data for demo
-        userData = {
-            walletAddress: userData.walletAddress,
-            isRegistered: true,
-            isActive: true,
-            totalEarned: 1850,
-            lockedTokens: 1650,
-            directReferrals: 3,
-            completedTasks: 8,
-            activationTime: Date.now() - (45 * 24 * 60 * 60 * 1000), // 45 days ago
-            dailyClaims: 5
-        };
+        // Real API call to get user data
+        const response = await fetch(`api.php?action=get-user&address=${userData.walletAddress}`);
+        const data = await response.json();
+        
+        if (data.success) {
+            userData = {
+                walletAddress: userData.walletAddress,
+                isRegistered: data.user.wallet_address ? true : false,
+                isActive: data.user.is_active == 1,
+                totalEarned: parseFloat(data.user.total_earned) || 0,
+                lockedTokens: parseFloat(data.user.locked_tokens) || 0,
+                directReferrals: data.user.direct_referrals || 0,
+                completedTasks: data.user.verified_tasks || 0,
+                activationTime: data.user.activation_time ? data.user.activation_time * 1000 : null,
+                dailyClaims: data.user.daily_claims || 0
+            };
+        } else {
+            // New user - initialize with zeros
+            userData = {
+                ...userData,
+                isRegistered: false,
+                isActive: false,
+                totalEarned: 0,
+                lockedTokens: 0,
+                directReferrals: 0,
+                completedTasks: 0,
+                activationTime: null,
+                dailyClaims: 0
+            };
+        }
         
         updateUI();
         updateTaskStatuses();
@@ -250,6 +269,19 @@ async function loadUserData() {
         
     } catch (error) {
         console.error('Error loading user data:', error);
+        // Fallback to minimal data
+        userData = {
+            ...userData,
+            isRegistered: false,
+            isActive: false,
+            totalEarned: 0,
+            lockedTokens: 0,
+            directReferrals: 0,
+            completedTasks: 0,
+            activationTime: null,
+            dailyClaims: 0
+        };
+        updateUI();
     }
 }
 
@@ -387,44 +419,106 @@ async function dailyClaim() {
 }
 
 // Load Tasks
-function loadTasks() {
-    const tasks = [
-        // Facebook Tasks
-        { id: 1, platform: 'facebook', type: 'follow', title: 'Follow Facebook Page', 
-          description: 'Follow our official Facebook page', reward: 100, completed: false },
-        { id: 2, platform: 'facebook', type: 'like', title: 'Like Facebook Post', 
-          description: 'Like our latest Facebook post', reward: 50, completed: true },
+// Line ~170: loadTasks function को replace करें
+async function loadTasks() {
+    try {
+        // Real API call to get tasks
+        const response = await fetch('api.php?action=tasks');
+        const data = await response.json();
         
-        // Twitter Tasks
-        { id: 3, platform: 'twitter', type: 'follow', title: 'Follow Twitter Account', 
-          description: 'Follow our Twitter account', reward: 100, completed: false },
-        { id: 4, platform: 'twitter', type: 'retweet', title: 'Retweet', 
-          description: 'Retweet our tweet', reward: 50, completed: false },
+        if (data.success) {
+            renderTasks(data.tasks);
+        } else {
+            // Fallback to default 20 tasks
+            renderTasks(getDefaultTasks());
+        }
+    } catch (error) {
+        console.error('Error loading tasks:', error);
+        renderTasks(getDefaultTasks());
+    }
+}
+
+// Default 20 tasks
+function getDefaultTasks() {
+    return [
+        // Facebook (4 tasks)
+        { id: 0, platform: 'facebook', type: 'follow', title: 'Follow Facebook Page', 
+          description: 'Follow our official Facebook page', reward: 100 },
+        { id: 1, platform: 'facebook', type: 'like', title: 'Like Facebook Post', 
+          description: 'Like our latest Facebook post', reward: 50 },
+        { id: 2, platform: 'facebook', type: 'share', title: 'Share Facebook Post', 
+          description: 'Share our Facebook post on your timeline', reward: 50 },
+        { id: 3, platform: 'facebook', type: 'comment', title: 'Comment on Facebook Post', 
+          description: 'Comment on our Facebook post', reward: 50 },
         
-        // Instagram Tasks
-        { id: 5, platform: 'instagram', type: 'follow', title: 'Follow Instagram Account', 
-          description: 'Follow our Instagram account', reward: 100, completed: true },
-        { id: 6, platform: 'instagram', type: 'like', title: 'Like Instagram Post', 
-          description: 'Like our Instagram post', reward: 50, completed: true },
+        // Twitter (4 tasks)
+        { id: 4, platform: 'twitter', type: 'follow', title: 'Follow Twitter Account', 
+          description: 'Follow our Twitter account', reward: 100 },
+        { id: 5, platform: 'twitter', type: 'like', title: 'Like Tweet', 
+          description: 'Like our latest tweet', reward: 50 },
+        { id: 6, platform: 'twitter', type: 'retweet', title: 'Retweet', 
+          description: 'Retweet our tweet', reward: 50 },
+        { id: 7, platform: 'twitter', type: 'comment', title: 'Comment on Tweet', 
+          description: 'Comment on our tweet', reward: 50 },
         
-        // YouTube Tasks
-        { id: 7, platform: 'youtube', type: 'subscribe', title: 'Subscribe YouTube Channel', 
-          description: 'Subscribe to our YouTube channel', reward: 100, completed: false },
-        { id: 8, platform: 'youtube', type: 'comment', title: 'Comment on YouTube Video', 
-          description: 'Comment on our YouTube video', reward: 50, completed: false },
+        // Instagram (4 tasks)
+        { id: 8, platform: 'instagram', type: 'follow', title: 'Follow Instagram Account', 
+          description: 'Follow our Instagram account', reward: 100 },
+        { id: 9, platform: 'instagram', type: 'like', title: 'Like Instagram Post', 
+          description: 'Like our Instagram post', reward: 50 },
+        { id: 10, platform: 'instagram', type: 'share', title: 'Share Instagram Post', 
+          description: 'Share our Instagram post to your story', reward: 50 },
+        { id: 11, platform: 'instagram', type: 'comment', title: 'Comment on Instagram Post', 
+          description: 'Comment on our Instagram post', reward: 50 },
         
-        // Telegram Tasks
-        { id: 9, platform: 'telegram', type: 'join', title: 'Join Telegram Channel', 
-          description: 'Join our Telegram channel', reward: 100, completed: true },
-        { id: 10, platform: 'telegram', type: 'join', title: 'Join Telegram Group', 
-          description: 'Join our Telegram group', reward: 100, completed: false }
+        // YouTube (4 tasks)
+        { id: 12, platform: 'youtube', type: 'subscribe', title: 'Subscribe YouTube Channel', 
+          description: 'Subscribe to our YouTube channel', reward: 100 },
+        { id: 13, platform: 'youtube', type: 'like', title: 'Like YouTube Video', 
+          description: 'Like our YouTube video', reward: 50 },
+        { id: 14, platform: 'youtube', type: 'share', title: 'Share YouTube Video', 
+          description: 'Share our YouTube video', reward: 50 },
+        { id: 15, platform: 'youtube', type: 'comment', title: 'Comment on YouTube Video', 
+          description: 'Comment on our YouTube video', reward: 50 },
+        
+        // Telegram (4 tasks)
+        { id: 16, platform: 'telegram', type: 'join', title: 'Join Telegram Channel', 
+          description: 'Join our Telegram channel', reward: 100 },
+        { id: 17, platform: 'telegram', type: 'join', title: 'Join Telegram Group', 
+          description: 'Join our Telegram group', reward: 100 },
+        { id: 18, platform: 'telegram', type: 'share', title: 'Share Telegram Post', 
+          description: 'Share our Telegram post', reward: 50 },
+        { id: 19, platform: 'telegram', type: 'comment', title: 'Comment in Telegram Group', 
+          description: 'Comment in our Telegram group', reward: 50 }
     ];
-    
+}
+
+// Render tasks function
+async function renderTasks(tasks) {
     const container = document.getElementById('tasksContainer');
+    if (!container) return;
+    
     container.innerHTML = '';
     
+    // Get user's completed tasks from API
+    let completedTasks = [];
+    if (userData.walletAddress) {
+        try {
+            const response = await fetch(`api.php?action=user-verifications&address=${userData.walletAddress}`);
+            const data = await response.json();
+            if (data.success) {
+                completedTasks = data.verifications
+                    .filter(v => v.status === 'verified')
+                    .map(v => v.task_id);
+            }
+        } catch (error) {
+            console.error('Error fetching completed tasks:', error);
+        }
+    }
+    
     tasks.forEach(task => {
-        const taskElement = createTaskElement(task);
+        const isCompleted = completedTasks.includes(task.id);
+        const taskElement = createTaskElement(task, isCompleted);
         container.appendChild(taskElement);
     });
 }
@@ -787,4 +881,5 @@ window.addEventListener('load', () => {
     if (page) {
         showPage(page);
     }
+
 });
