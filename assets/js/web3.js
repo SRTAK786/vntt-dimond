@@ -1,9 +1,9 @@
 // Web3 Configuration
 const CONFIG = {
-    contractAddress: "YOUR_CONTRACT_ADDRESS", // Replace with your contract address
-    vnttTokenAddress: "YOUR_VNTT_TOKEN_ADDRESS",
+    contractAddress: "0x660251F2CFcE9c0f9aED1e4f7aa75EF9f0618c8c", // Replace with your contract address
+    vnttTokenAddress: "0x6033849Dc89eC1DB364EFcd8A6cf9Bc095cD3e41",
     usdtTokenAddress: "0x55d398326f99059fF775485246999027B3197955", // BSC USDT
-    vntTokenAddress: "YOUR_VNT_TOKEN_ADDRESS",
+    vntTokenAddress: "0xD379Fd70C5C334bb31208122A6781ADB032D176f",
     chainId: "56", // BSC Mainnet
     rpcUrl: "https://bsc-dataseed.binance.org/",
     networkName: "Binance Smart Chain",
@@ -323,4 +323,5 @@ window.Web3Utils = {
     formatAddress,
     CONFIG,
     ERC20_ABI
+
 };
