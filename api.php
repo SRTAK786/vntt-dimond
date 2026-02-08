@@ -372,7 +372,7 @@ function getPendingVerifications() {
     
     // Simple admin check
     $token = $_GET['token'] ?? '';
-    if ($token !== 'vnttadmin2024') {
+    if ($token !== 'vntt2627') {
         echo json_encode(['success' => false, 'message' => 'Unauthorized']);
         return;
     }
@@ -405,7 +405,7 @@ function handleAdminVerify($data) {
     
     // Admin check
     $token = $data['token'] ?? '';
-    if ($token !== 'vnttadmin2024') {
+    if ($token !== 'vntt2627') {
         echo json_encode(['success' => false, 'message' => 'Unauthorized']);
         return;
     }
